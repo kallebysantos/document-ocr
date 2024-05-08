@@ -4,15 +4,45 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { usePipeline } from "@/lib/hooks/use-pipeline";
-import { TokenClassificationOutput } from "@xenova/transformers";
+import {
+  TokenClassificationOutput,
+  TokenClassificationSingle,
+} from "@xenova/transformers";
 import { LoaderCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import clsx from "clsx";
+
+function Token({ value }: { value: TokenClassificationSingle }) {
+  return (
+    <span
+      className={clsx(
+        {
+          "text-white font-medium px-1 rounded-sm":
+            !value.entity.startsWith("O"),
+        },
+        {
+          "-ms-[0.375rem] px-1 rounded-s-none":
+            !value.entity.startsWith("O") && value.word.startsWith("##"),
+        },
+        {
+          "-ms-[0.125rem]": value.entity.startsWith("I"),
+        },
+        { "bg-blue-500": value.entity.includes("PESSOA") },
+        { "bg-rose-500": value.entity.includes("ORGANIZACAO") },
+        { "bg-emerald-500": value.entity.includes("TEMPO") },
+        { "bg-indigo-500": value.entity.includes("LOCAL") },
+        { "bg-fuchsia-500": value.entity.includes("LEGISLACAO") },
+        { "bg-fuchsia-700": value.entity.includes("JURISPRUDENCIA") }
+      )}
+    >
+      {value.word.replace("##", "")}
+    </span>
+  );
+}
 
 export default function Home() {
   const [text, setText] = useState("");
-  const [extraction, setExtraction] = useState<
-    TokenClassificationOutput | TokenClassificationOutput[]
-  >();
+  const [extraction, setExtraction] = useState<TokenClassificationOutput>();
 
   const tokenClassification = usePipeline(
     "token-classification",
@@ -28,10 +58,35 @@ export default function Home() {
       return;
     }
 
-    const outputTokens = await tokenClassification.pipe(text);
+    const outputTokens = (await tokenClassification.pipe(text, {
+      ignore_labels: [],
+    })) as TokenClassificationOutput;
 
-    console.log(outputTokens);
+    /*
+    const grouped = outputTokens.reduce((prev, current, idx, array) => {
+      if (current.entity.startsWith("B")) {
+        return [...prev, [current]];
+      }
 
+      const a = prev.pop();
+      if (a) {
+        return [...prev, [...a, current]];
+      }
+
+      return prev;
+    }, new Array<TokenClassificationSingle[]>());
+
+    const mapped = grouped.map((group) => ({
+      group,
+      entity: group.at(0)?.entity.replace("B-", ""),
+      start: group.at(0)?.index,
+      end: group.at(-1)?.index,
+      words: group.map((item) => item.word.replace("##", "")),
+    }));
+
+    console.log(grouped);
+    console.log(mapped);
+    */
     setExtraction(outputTokens);
   }
 
@@ -62,7 +117,10 @@ export default function Home() {
         {!tokenClassification.isReady && "Inicializando ..."}
       </Button>
 
-      {extraction && <code>{JSON.stringify(extraction)}</code>}
+      <div className="flex flex-wrap gap-1">
+        {extraction &&
+          extraction.map((token) => <Token key={token.index} value={token} />)}
+      </div>
     </main>
   );
 }

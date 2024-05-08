@@ -1,3 +1,12 @@
 {
-  "cSpell.words": ["onnxruntime", "Pretrained", "xenova"]
+  "cSpell.words": [
+    "clsx",
+    "JURISPRUDENCIA",
+    "LEGISLACAO",
+    "onnxruntime",
+    "ORGANIZACAO",
+    "Pretrained",
+    "xenova"
+  ],
+  "deno.enable": false
 }

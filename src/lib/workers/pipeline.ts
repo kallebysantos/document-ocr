@@ -118,12 +118,12 @@ self.addEventListener(
 
         // Classes (ie. `Tensor`) cannot be transferred to the main thread,
         // so we spread its properties into a plain object
-        const data = { ...output };
+        //const data = { ...output };
 
         self.postMessage({
           type: "result",
           id,
-          data,
+          data: output,
         } satisfies ResultEventData);
 
         break;
