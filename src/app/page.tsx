@@ -12,6 +12,25 @@ import { LoaderCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import clsx from "clsx";
 
+function simpleAggregation(tokens: TokenClassificationOutput) {
+  const grouped = tokens.reduce((prev, current, idx, array) => {
+    if (current.entity.startsWith("B")) {
+      return [...prev, [current]];
+    }
+
+    const a = prev.pop();
+    if (a) {
+      return [...prev, [...a, current]];
+    }
+
+    return prev;
+  }, new Array<TokenClassificationSingle[]>());
+
+  console.log(grouped);
+
+  return grouped;
+}
+
 function Token({ value }: { value: TokenClassificationSingle }) {
   return (
     <span
@@ -87,6 +106,7 @@ export default function Home() {
     console.log(grouped);
     console.log(mapped);
     */
+
     setExtraction(outputTokens);
   }
 
@@ -108,14 +128,25 @@ export default function Home() {
         )}
       </div>
 
-      <Button className="gap-2" onClick={HandleExtract} disabled={isLoading}>
-        {isLoading ? (
-          <LoaderCircle className="w-4 h-4 animate-spin" />
-        ) : (
-          "Processar"
+      <div className="flex gap-4">
+        <Button className="gap-2" onClick={HandleExtract} disabled={isLoading}>
+          {isLoading ? (
+            <LoaderCircle className="w-4 h-4 animate-spin" />
+          ) : (
+            "Processar"
+          )}
+          {!tokenClassification.isReady && "Inicializando ..."}
+        </Button>
+
+        {extraction && (
+          <Button
+            variant={"outline"}
+            onClick={() => simpleAggregation(extraction)}
+          >
+            Simple AGG
+          </Button>
         )}
-        {!tokenClassification.isReady && "Inicializando ..."}
-      </Button>
+      </div>
 
       <div className="flex flex-wrap gap-1">
         {extraction &&
