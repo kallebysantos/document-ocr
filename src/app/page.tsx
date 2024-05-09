@@ -12,19 +12,71 @@ import { LoaderCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import clsx from "clsx";
 
+type AggregationGroup = {
+  index: number;
+  score: number;
+  entityGroup: string;
+  tokens: TokenClassificationSingle[];
+  word: string;
+  start?: number;
+  end?: number;
+};
+
 function simpleAggregation(tokens: TokenClassificationOutput) {
-  const grouped = tokens.reduce((prev, current, idx, array) => {
-    if (current.entity.startsWith("B")) {
-      return [...prev, [current]];
-    }
+  const grouped = tokens
+    .filter((token) => !token.entity.startsWith("O"))
+    .reduce((groups, current) => {
+      if (current.entity.startsWith("B")) {
+        return [
+          ...groups,
+          {
+            index: current.index,
+            score: current.score,
+            entityGroup: current.entity.replace("B-", ""),
+            word: current.word,
+            tokens: [current],
+            start: current.start,
+            end: current.end,
+          } satisfies AggregationGroup,
+        ];
+      }
 
-    const a = prev.pop();
-    if (a) {
-      return [...prev, [...a, current]];
-    }
+      const lastEntry = groups.pop();
 
-    return prev;
-  }, new Array<TokenClassificationSingle[]>());
+      if (!lastEntry) {
+        return groups;
+      }
+
+      // Discard if is not same Entity Group of last entry
+      if (lastEntry.entityGroup !== current.entity.replace("I-", "")) {
+        return [...groups, lastEntry];
+      }
+
+      const tokens = [...lastEntry.tokens, current];
+
+      const score = tokens.reduce(
+        (max, token) => Math.max(max, token.score),
+        -Infinity
+      );
+
+      const word = lastEntry.word.concat(
+        // Include '##' means that word is part of previous, otherwise we need to add a blank space between
+        current.word.includes("##")
+          ? current.word.replace("##", "")
+          : " " + current.word
+      );
+
+      return [
+        ...groups,
+        {
+          ...lastEntry,
+          score,
+          word,
+          tokens,
+          end: current.end,
+        } satisfies AggregationGroup,
+      ];
+    }, new Array<AggregationGroup>());
 
   console.log(grouped);
 
